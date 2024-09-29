@@ -9,14 +9,14 @@
 
 Сделать get-запрос вы можете как с помощью Postman, так и просто в браузере.
 """
+
 from django.http import HttpRequest, HttpResponse, JsonResponse, HttpResponseNotFound
 
 from challenges.models import Book
 
 
 def get_book(book_id: int) -> Book | None:
-    # код писать тут
-    pass
+    return Book.objects.filter(id=book_id).first()
 
 
 def book_details_handler(request: HttpRequest, book_id: int) -> HttpResponse:
@@ -25,9 +25,11 @@ def book_details_handler(request: HttpRequest, book_id: int) -> HttpResponse:
     if book is None:
         return HttpResponseNotFound()
 
-    return JsonResponse({
-        "id": book.pk,
-        "title": book.title,
-        "author_full_name": book.author_full_name,
-        "isbn": book.isbn,
-    })
+    return JsonResponse(
+        {
+            "id": book.pk,
+            "title": book.title,
+            "author_full_name": book.author_full_name,
+            "isbn": book.isbn,
+        }
+    )
