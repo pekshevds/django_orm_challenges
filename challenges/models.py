@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import Iterable, Any
 from django.db import models
 from django.db.models import QuerySet
@@ -9,6 +10,18 @@ BRANDS = (
     ("AP", "Apple"),
     ("HP", "Hewlett-Packard"),
     ("DL", "Dell"),
+)
+
+POST_STATUSES = (
+    ("NP", "Не опубликован"),
+    ("OP", "Опубликован"),
+    ("ZB", "Забанен"),
+)
+
+POST_CATEGORIES = (
+    ("C1", "Категория 1"),
+    ("C2", "Категория 2"),
+    ("C3", "Категория 3"),
 )
 
 
@@ -44,4 +57,35 @@ class Notebook(models.Model):
     def to_json(cls, data: Iterable | Any) -> str:
         if isinstance(data, QuerySet):
             return json.dumps([obj_to_dict(notebook) for notebook in data], default=str)
+        return json.dumps(obj_to_dict(data), default=str)
+
+
+class Post(models.Model):
+    name = models.CharField(max_length=150, verbose_name="Наименование")
+    author = models.CharField(max_length=150, verbose_name="Автор")
+    status = models.CharField(
+        max_length=2, choices=POST_STATUSES, default="NP", verbose_name="Статус"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    published_at = models.DateTimeField(
+        verbose_name="Дата публикации", null=True, blank=True
+    )
+    category = models.CharField(
+        max_length=2, choices=POST_CATEGORIES, default="C1", verbose_name="Категория"
+    )
+
+    def __str__(self) -> str:
+        return f"{self.name} {self.author}/{self.status}/created at {self.created_at}/published at {self.published_at}/{self.category}"
+
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ) -> Any:
+        if self.status == "OP":
+            self.published_at = datetime.now()
+        return super().save()
+
+    @classmethod
+    def to_json(cls, data: Iterable | Any) -> str:
+        if isinstance(data, QuerySet):
+            return json.dumps([obj_to_dict(post) for post in data], default=str)
         return json.dumps(obj_to_dict(data), default=str)
