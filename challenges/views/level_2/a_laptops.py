@@ -11,7 +11,16 @@
 - реализовать у модели метод to_json, который будет преобразовывать объект ноутбука в json-сериализуемый словарь
 - по очереди реализовать каждую из вьюх в этом файле, проверяя правильность их работу в браузере
 """
-from django.http import HttpRequest, HttpResponse
+
+from decimal import Decimal
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotFound,
+    HttpResponseForbidden,
+)
+from django.shortcuts import get_object_or_404
+from challenges.models import Notebook, BRANDS
 
 
 def laptop_details_view(request: HttpRequest, laptop_id: int) -> HttpResponse:
@@ -19,7 +28,8 @@ def laptop_details_view(request: HttpRequest, laptop_id: int) -> HttpResponse:
     В этой вьюхе вам нужно вернуть json-описание ноутбука по его id.
     Если такого id нет, вернуть 404.
     """
-    pass
+    notebook = get_object_or_404(Notebook, id=laptop_id)
+    return HttpResponse(Notebook.to_json(notebook))
 
 
 def laptop_in_stock_list_view(request: HttpRequest) -> HttpResponse:
@@ -27,7 +37,8 @@ def laptop_in_stock_list_view(request: HttpRequest) -> HttpResponse:
     В этой вьюхе вам нужно вернуть json-описание всех ноутбуков, которых на складе больше нуля.
     Отсортируйте ноутбуки по дате добавления, сначала самый новый.
     """
-    pass
+    notebooks = Notebook.objects.filter(balance__gt=0).order_by("-add_date")
+    return HttpResponse(Notebook.to_json(notebooks))
 
 
 def laptop_filter_view(request: HttpRequest) -> HttpResponse:
@@ -37,7 +48,14 @@ def laptop_filter_view(request: HttpRequest) -> HttpResponse:
     Если бренд не входит в список доступных у вас на сайте или если цена отрицательная, верните 403.
     Отсортируйте ноутбуки по цене, сначала самый дешевый.
     """
-    pass
+    brand = request.GET.get("brand")
+    min_price = Decimal(request.GET.get("min_price", "0"))
+    if brand not in [_[0] for _ in BRANDS] or min_price < 0:
+        return HttpResponseForbidden()
+    notebooks = Notebook.objects.filter(brand=brand, price__gt=min_price).order_by(
+        "price"
+    )
+    return HttpResponse(Notebook.to_json(notebooks))
 
 
 def last_laptop_details_view(request: HttpRequest) -> HttpResponse:
@@ -45,4 +63,7 @@ def last_laptop_details_view(request: HttpRequest) -> HttpResponse:
     В этой вьюхе вам нужно вернуть json-описание последнего созданного ноутбука.
     Если ноутбуков нет вообще, вернуть 404.
     """
-    pass
+    notebook = Notebook.objects.order_by("-add_date").first()
+    if notebook:
+        return HttpResponse(Notebook.to_json(notebook))
+    return HttpResponseNotFound()
