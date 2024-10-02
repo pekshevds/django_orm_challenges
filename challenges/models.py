@@ -73,16 +73,15 @@ class Post(models.Model):
     category = models.CharField(
         max_length=2, choices=POST_CATEGORIES, default="C1", verbose_name="Категория"
     )
+    post = models.TextField(verbose_name="Текст", default="")
 
     def __str__(self) -> str:
         return f"{self.name} {self.author}/{self.status}/created at {self.created_at}/published at {self.published_at}/{self.category}"
 
-    def save(
-        self, force_insert=False, force_update=False, using=None, update_fields=None
-    ) -> Any:
+    def save(self, *args, **kwargs) -> Any:
         if self.status == "OP":
             self.published_at = datetime.now()
-        return super().save()
+        return super().save(*args, **kwargs)
 
     @classmethod
     def to_json(cls, data: Iterable | Any) -> str:
